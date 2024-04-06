@@ -1,54 +1,141 @@
-﻿//Variables
-bool volver = true;
-const double BONO = 0.4; //Snake Case:Notación para constantes.
+﻿bool volver = true;
 
 while (volver)
 {
-    decimal aporteMensual, rendimientoMensual, aporteTotal = 0, rendimientoTotal = 0, bonoMensual = 0, bonoTotal = 0, aporteTotalNeto, tasaMensual;
-    string continuar;
+    Console.WriteLine("¡Bienvenido a la Natillera Navideña!");
 
-    //Clase random
-    Random random = new Random(); //Esta es la forma de instanciar una clase en objeto
+    // Variables para el primer socio
+    Socio socio1 = ProcesarSocio();
+
+    // Variables para el segundo socio
+    Socio socio2 = ProcesarSocio();
+
+    // Liquidar la natillera al final del año para ambos socios
+    LiquidarNatillera(socio1);
+    LiquidarNatillera(socio2);
+
+    Console.WriteLine("\n¿Desea ingresar a la natillera para el siguiente año? (s/n)");
+    string continuar = Console.ReadLine();
+    if (continuar.ToLower() != "s")
+        volver = false;
+}
+
+Console.WriteLine("¡Gracias por utilizar la Natillera Navideña!");
+  
+
+        static Socio ProcesarSocio()
+{
+    Socio socio = new Socio();
 
     for (int mes = 1; mes <= 12; mes++)
     {
-        Console.Write($"Ingrese la cantidad que desea ahorrar en el mes {mes}: ");
-        aporteMensual = Convert.ToDecimal(Console.ReadLine());
+        Console.WriteLine($"\n--- Mes {mes} ---");
+        Console.Write("Ingrese la cantidad que desea ahorrar este mes: ");
+        decimal aporteMensual = Convert.ToDecimal(Console.ReadLine());
 
-        tasaMensual = (decimal)random.Next(1, 51) / 10;
-        rendimientoMensual = aporteMensual * (tasaMensual / 100);
+        socio.Aportar(aporteMensual);
 
-        if (tasaMensual < 3.5M)
+        Console.WriteLine($"Aportes: {aporteMensual:C}");
+        Console.WriteLine($"Saldo acumulado: {socio.Saldo:C}");
+
+        if (aporteMensual == 0)
         {
-            bonoMensual = aporteMensual * (decimal)BONO;
-            bonoTotal += bonoMensual;
-            bonoMensual = 0;
+            Console.WriteLine("Se aplicará una multa de $20,000 por no realizar aportes.");
+            socio.AplicarMulta();
         }
 
-        aporteTotal += aporteMensual;
-        rendimientoTotal += rendimientoMensual;
-
-        Console.Write($"MES {mes}\n" +
-                      $"Aportes: {aporteMensual:C}\n" +
-                      $"Tasa: {tasaMensual}%\n" +
-                      $"Rendimientos: {rendimientoMensual:C}\n" +
-                      $"Bono: {bonoMensual:C}\n" +
-                      $"---------------------------------------\n" +
-                      $" \n");
+        if (socio.Saldo > 0)
+        {
+            Console.Write("¿Desea solicitar un préstamo? (s/n): ");
+            string respuesta = Console.ReadLine();
+            if (respuesta.ToLower() == "s")
+            {
+                Console.Write("Ingrese la cantidad del préstamo: ");
+                decimal cantidadPrestamo = Convert.ToDecimal(Console.ReadLine());
+                if (socio.SolicitarPrestamo(cantidadPrestamo))
+                {
+                    Console.WriteLine($"Préstamo aprobado por {cantidadPrestamo:C}. Nuevo saldo: {socio.Saldo:C}");
+                }
+                else
+                {
+                    Console.WriteLine("El préstamo solicitado supera el saldo disponible. No se aprobó.");
+                }
+            }
+        }
     }
 
-    aporteTotalNeto = rendimientoTotal + aporteTotal + bonoTotal;
-
-    Console.Write($"Aportes totales: {aporteTotal:C}\n" +
-                  $"Rendimientos totales: {rendimientoTotal:C}\n" +
-                  $"Bonos totales: {bonoTotal:C}\n" +
-                  "--------------------------------\n" +
-                  $"TOTAL NETO: {aporteTotalNeto:C}\n" +
-                  $" \n");
-
-
-    Console.WriteLine("¿Desea ingresra a la natillera para el siguiente año? (s/n)");
-    
-    if (continuar == "n") volver = false;
+    return socio;
 }
+
+static void LiquidarNatillera(Socio socio)
+{
+    Console.WriteLine($"\n--- Liquidación de la Natillera para {socio.Nombre} ---");
+    Console.WriteLine($"Total multas pagadas: {socio.Multas * 20000:C}");
+    Console.WriteLine($"Valor del préstamo (si lo solicitó): {socio.Prestamo?.Cantidad:C}");
+    Console.WriteLine($"Intereses generados por el préstamo: {socio.Prestamo?.CalcularIntereses():C}");
+    decimal totalLiquidado = socio.Saldo - (socio.Multas * 20000);
+    if (socio.Prestamo != null)
+    {
+        totalLiquidado -= socio.Prestamo.CalcularIntereses() + socio.Prestamo.Cantidad;
+    }
+    Console.WriteLine($"Valor neto a liquidar: {totalLiquidado:C}");
+}
+
+
+    class Socio
+{
+    public string Nombre { get; set; }
+    public decimal Saldo { get; private set; }
+    public int Multas { get; private set; }
+    public Prestamo Prestamo { get; private set; }
+
+    public Socio()
+    {
+        Console.Write("Ingrese el nombre del socio: ");
+        Nombre = Console.ReadLine();
+    }
+
+    public void Aportar(decimal cantidad)
+    {
+        Saldo += cantidad;
+    }
+
+    public void AplicarMulta()
+    {
+        if (Saldo == 0)
+            Multas++;
+        Saldo -= 20000;
+    }
+
+    public bool SolicitarPrestamo(decimal cantidad)
+    {
+        if (cantidad <= Saldo)
+        {
+            Prestamo = new Prestamo(cantidad);
+            Saldo -= cantidad;
+            return true;
+        }
+        return false;
+    }
+}
+
+class Prestamo
+{
+    public decimal Cantidad { get; }
+    public int MesSolicitud { get; }
+
+    public Prestamo(decimal cantidad)
+    {
+        Cantidad = cantidad;
+        MesSolicitud = DateTime.Now.Month;
+    }
+
+    public decimal CalcularIntereses()
+    {
+        int mesesDeIntereses = 12 - MesSolicitud;
+        decimal intereses = Cantidad * mesesDeIntereses * 0.025M;
+        return intereses;
+    }
+}
+
     
