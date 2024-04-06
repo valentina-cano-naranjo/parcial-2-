@@ -52,7 +52,7 @@ jugadorActual = (jugadorActual % numjugadores) + 1;
 }
 
 Console.Write("¿Desean jugar otra vez? (Sí/No): ");
-Empezar = Console.ReadLine() == "sí";
+Empezar = Console.ReadLine().Trim().ToLower() == "sí";
 Console.Clear();
 
  while (Empezar) ;
